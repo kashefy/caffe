@@ -14,6 +14,7 @@ void SigmoidCrossEntropyLossLayer<Dtype>::LayerSetUp(
   sigmoid_top_vec_.clear();
   sigmoid_top_vec_.push_back(sigmoid_output_.get());
   sigmoid_layer_->SetUp(sigmoid_bottom_vec_, sigmoid_top_vec_);
+  positive_weight_ = this->layer_param_.sigmoid_cross_entropy_loss_param().positive_weight();
 }
 
 template <typename Dtype>
@@ -35,12 +36,22 @@ void SigmoidCrossEntropyLossLayer<Dtype>::Forward_cpu(
   const int count = bottom[0]->count();
   const int num = bottom[0]->num();
   // Stable version of loss computation from input data
-  const Dtype* input_data = bottom[0]->cpu_data();
+  const Dtype* input_data = sigmoid_output_->cpu_data();
+  //const Dtype* input_data = bottom[0]->cpu_data();
   const Dtype* target = bottom[1]->cpu_data();
   Dtype loss = 0;
+  if (positive_weight_ == -1) {
+    positive_weight_ = count/num;
+  }
   for (int i = 0; i < count; ++i) {
-    loss -= input_data[i] * (target[i] - (input_data[i] >= 0)) -
-        log(1 + exp(input_data[i] - 2 * input_data[i] * (input_data[i] >= 0)));
+      if (positive_weight_ == 1) {
+        loss -= input_data[i] * (target[i] - (input_data[i] >= 0)) -
+                log(1 + exp(input_data[i] - 2 * input_data[i] * (input_data[i] >= 0)));
+      }
+      else {
+        loss -= positive_weight_ * target[i] * log(input_data[i]) +
+                (1-target[i]) * log(1-input_data[i]);
+      }
   }
   top[0]->mutable_cpu_data()[0] = loss / num;
 }
