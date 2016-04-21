@@ -36,6 +36,7 @@ void SigmoidCrossEntropyLossLayer<Dtype>::Forward_cpu(
   const int count = bottom[0]->count();
   const int num = bottom[0]->num();
   // Stable version of loss computation from input data
+  std::cout<<positive_weight_<<" "<<positive_weight_ == 1<<std::endl;
   const Dtype* input_data;
   if (positive_weight_ == 1) {
       input_data = bottom[0]->cpu_data();
